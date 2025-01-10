@@ -34,12 +34,14 @@ module stbuf (
     wire [`STBUF_ENT_NUM-1:0]   stbuf_addr_hit_vec;
     wire [`STBUF_ENT_SEL-1:0]   stbuf_addr_hit_vec_rot_shamt;
     wire [2*`STBUF_ENT_NUM-1:0] stbuf_addr_hit_vec_rot;
+    wire [`STBUF_ENT_SEL-1:0]   stbuf_addr_hit_sel_rot;
     wire [`STBUF_ENT_SEL-1:0]   stbuf_addr_hit_sel;
 
     assign ret_vld = vld[ret_ptr] && com[ret_ptr] && (!i_dmem_occupy);
 
-    assign stbuf_addr_hit_vec_rot_shamt = `STBUF_ENT_SEL - fin_ptr;
+    assign stbuf_addr_hit_vec_rot_shamt = `STBUF_ENT_NUM - fin_ptr;
     assign stbuf_addr_hit_vec_rot = {stbuf_addr_hit_vec, stbuf_addr_hit_vec} << stbuf_addr_hit_vec_rot_shamt;
+    assign stbuf_addr_hit_sel = stbuf_addr_hit_sel_rot + fin_ptr;
     
     always @(posedge clk) begin
         if (i_exfin_st) begin
@@ -98,7 +100,7 @@ module stbuf (
     ) u_search_end_unit (
         .i_req     (stbuf_addr_hit_vec_rot[`STBUF_ENT_NUM+:`STBUF_ENT_NUM]),
         .o_ack_vld (o_stbuf_addr_hit),
-        .o_ack     (stbuf_addr_hit_sel)
+        .o_ack     (stbuf_addr_hit_sel_rot)
     );
 
     assign o_full           = (fin_ptr == ret_ptr) && (vld[fin_ptr]);

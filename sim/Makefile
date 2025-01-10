@@ -7,6 +7,9 @@ SIM_DIR  = .
 
 # OBJS for rtl files, OBJ for testbench files
 OBJS = \
+$(CORE_DIR)/alloc_issue_disorder.v \
+$(CORE_DIR)/alloc_issue_order.v \
+$(CORE_DIR)/alloc_unit.v \
 $(CORE_DIR)/alu.v \
 $(CORE_DIR)/arf.v \
 $(CORE_DIR)/decoder.v \
@@ -18,6 +21,7 @@ $(CORE_DIR)/freelist_manager.v \
 $(CORE_DIR)/imem.v \
 $(CORE_DIR)/imm_gen.v \
 $(CORE_DIR)/inst_sel_unit.v \
+$(CORE_DIR)/issue_unit.v \
 $(CORE_DIR)/ldst.v \
 $(CORE_DIR)/mul.v \
 $(CORE_DIR)/pc_reg.v \
@@ -28,10 +32,8 @@ $(CORE_DIR)/req_arbiter.v \
 $(CORE_DIR)/req_mask.v \
 $(CORE_DIR)/rob.v \
 $(CORE_DIR)/rrf.v \
-$(CORE_DIR)/rs_alloc_unit.v \
 $(CORE_DIR)/rs_alu_ent.v \
 $(CORE_DIR)/rs_alu.v \
-$(CORE_DIR)/rs_issue_unit.v \
 $(CORE_DIR)/rs_ldst_ent.v \
 $(CORE_DIR)/rs_ldst.v \
 $(CORE_DIR)/rs_mul_ent.v \

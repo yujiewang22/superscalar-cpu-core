@@ -4,7 +4,7 @@
 module exunit_alu (
     input  wire                        clk,
     input  wire                        rst_n,
-    output wire                        o_inaccessable,    
+    output wire                        o_accessable,    
     input  wire                        i_is_vld,
     input  wire [`ALU_OP_SEL-1:0]      i_op_sel,      
     input  wire [`ALU_SRC1_SEL-1:0]    i_src1_sel,
@@ -25,7 +25,7 @@ module exunit_alu (
     wire [`RV32_DATA_WIDTH-1:0] src2;
     wire [`RV32_DATA_WIDTH-1:0] res;
 
-    assign o_inaccessable = 1'b0;
+    assign o_accessable = 1'b1;
 
     // i_is_vld controls the busy signal one cycle ahead
     always @(posedge clk) begin

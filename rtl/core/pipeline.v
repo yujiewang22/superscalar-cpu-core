@@ -254,7 +254,7 @@ module pipeline (
     // --------------------- EX-Stage --------------------- //
     // ---------------------------------------------------- //  
 
-    wire                        ex_alu_inaccessable;
+    wire                        ex_alu_accessable;
     reg  [`ALU_OP_SEL-1:0]      ex_alu_op_sel;
     reg  [`ALU_SRC1_SEL-1:0]    ex_alu_src1_sel;
     reg  [`ALU_SRC2_SEL-1:0]    ex_alu_src2_sel;
@@ -266,7 +266,7 @@ module pipeline (
     wire                        exfin_alu;
     wire [`RV32_DATA_WIDTH-1:0] exfin_alu_res;
 
-    wire                        ex_mul_inaccessable;
+    wire                        ex_mul_accessable;
     reg                         ex_mul_signed1;
     reg                         ex_mul_signed2;
     reg                         ex_mul_sel_high;
@@ -276,7 +276,7 @@ module pipeline (
     wire                        exfin_mul;
     wire [`RV32_DATA_WIDTH-1:0] exfin_mul_res;
 
-    wire                        ex_ldst_inaccessable;
+    wire                        ex_ldst_accessable;
     reg  [`RV32_DATA_WIDTH-1:0] ex_ldst_rs1_srcopr;
     reg  [`RV32_DATA_WIDTH-1:0] ex_ldst_rs2_srcopr;
     reg  [`RV32_DATA_WIDTH-1:0] ex_ldst_imm;
@@ -580,6 +580,9 @@ module pipeline (
         .i_ex_mul_rrftag      (ex_mul_rrftag),
         .i_exfin_mul          (exfin_mul),
         .i_exfin_mul_res      (exfin_mul_res),
+        .i_ex_ld_rrftag       (ex_ld_rrftag),
+        .i_exfin_ld           (exfin_ld),
+        .i_exfin_ld_res       (exfin_ld_res),
         .i_com_vld_1          (com_vld_1),
         .i_com_ptr_1          (com_ptr_1),
         .o_com_rd_wr_data_1   (com_rd_wr_data_1),
@@ -735,9 +738,9 @@ module pipeline (
         .o_rs_branch_req_num (dp_rs_branch_req_num)
     );
 
-    rs_alloc_unit #(
-        .RS_ENT_NUM  (`RS_ALU_ENT_NUM),
-        .RS_ENT_SEL  (`RS_ALU_ENT_SEL)
+    alloc_unit #(
+        .ENT_NUM     (`RS_ALU_ENT_NUM),
+        .ENT_SEL     (`RS_ALU_ENT_SEL)
     ) u_rs_alu_alloc_unit (
         .i_busy_vec  (rs_alu_busy_vec),
         .i_req_num   (dp_rs_alu_req_num),
@@ -748,30 +751,40 @@ module pipeline (
         .o_sel_2     (rs_alu_alloc_sel_2)
     );
 
-    rs_alloc_unit #(
-        .RS_ENT_NUM  (`RS_MUL_ENT_NUM),
-        .RS_ENT_SEL  (`RS_MUL_ENT_SEL)
-    ) u_rs_mul_alloc_unit (
-        .i_busy_vec  (rs_mul_busy_vec),
-        .i_req_num   (dp_rs_mul_req_num),
-        .o_allocable (rs_mul_allocable),
-        .o_sel_vld_1 (rs_mul_alloc_sel_vld_1), // Not used
-        .o_sel_vld_2 (rs_mul_alloc_sel_vld_2), // Not used
-        .o_sel_1     (rs_mul_alloc_sel_1),
-        .o_sel_2     (rs_mul_alloc_sel_2)
+    alloc_issue_disorder #(
+        .ENT_NUM           (`RS_MUL_ENT_NUM),
+        .ENT_SEL           (`RS_MUL_ENT_SEL)
+    ) u_rs_mul_alloc_issue_disorder (
+        .i_busy_vec        (rs_mul_busy_vec),
+        .i_req_num         (dp_rs_mul_req_num),
+        .o_allocable       (rs_mul_allocable),
+        .o_alloc_sel_vld_1 (rs_mul_alloc_sel_vld_1), // Not used 
+        .o_alloc_sel_vld_2 (rs_mul_alloc_sel_vld_2), // Not used 
+        .o_alloc_sel_1     (rs_mul_alloc_sel_1),
+        .o_alloc_sel_2     (rs_mul_alloc_sel_2),
+        .i_vld_vec         (rs_mul_vld_vec),
+        .o_issue_sel_vld   (is_rs_mul_sel_vld),
+        .o_issue_sel       (is_rs_mul_sel)
     );
 
-    rs_alloc_unit #(
-        .RS_ENT_NUM  (`RS_LDST_ENT_NUM),
-        .RS_ENT_SEL  (`RS_LDST_ENT_SEL)
-    ) u_rs_ldst_alloc_unit (
-        .i_busy_vec  (rs_ldst_busy_vec),
-        .i_req_num   (dp_rs_ldst_req_num),
-        .o_allocable (rs_ldst_allocable),
-        .o_sel_vld_1 (rs_ldst_alloc_sel_vld_1), // Not used
-        .o_sel_vld_2 (rs_ldst_alloc_sel_vld_2), // Not used
-        .o_sel_1     (rs_ldst_alloc_sel_1),
-        .o_sel_2     (rs_ldst_alloc_sel_2)
+    alloc_issue_order #(
+        .ENT_NUM           (`RS_LDST_ENT_NUM),
+        .ENT_SEL           (`RS_LDST_ENT_SEL)
+    ) u_rs_ldst_alloc_issue_order (
+        .clk               (clk),
+        .rst_n             (rst_n),
+        .i_stall           (stall_dp),
+        .i_busy_vec        (rs_ldst_busy_vec),
+        .i_req_num         (dp_rs_ldst_req_num),
+        .o_allocable       (rs_ldst_allocable),
+        .o_alloc_sel_vld_1 (rs_ldst_alloc_sel_vld_1), // Not used
+        .o_alloc_sel_vld_2 (rs_ldst_alloc_sel_vld_2), // Not used
+        .o_alloc_sel_1     (rs_ldst_alloc_sel_1),
+        .o_alloc_sel_2     (rs_ldst_alloc_sel_2),
+        .i_vld_vec         (rs_ldst_vld_vec),
+        .i_issue_vld       (is_rs_ldst_vld),
+        .o_issue_sel_vld   (is_rs_ldst_sel_vld),
+        .o_issue_sel       (is_rs_ldst_sel)
     );
 
     // ---------------------------------------------------- //
@@ -916,36 +929,18 @@ module pipeline (
         .i_exfin_ld_res        (exfin_ld_res) 
     );
 
-    rs_issue_unit #(
-        .RS_ENT_NUM (`RS_ALU_ENT_NUM),
-        .RS_ENT_SEL (`RS_ALU_ENT_SEL)
+    issue_unit #(
+        .ENT_NUM    (`RS_ALU_ENT_NUM),
+        .ENT_SEL    (`RS_ALU_ENT_SEL)
     ) u_rs_alu_issue_unit (
         .i_vld_vec  (rs_alu_vld_vec),
         .o_sel_vld  (is_rs_alu_sel_vld),
         .o_sel      (is_rs_alu_sel)
     );
 
-    rs_issue_unit #(
-        .RS_ENT_NUM (`RS_MUL_ENT_NUM),
-        .RS_ENT_SEL (`RS_MUL_ENT_SEL)
-    ) u_rs_mul_issue_unit (
-        .i_vld_vec  (rs_mul_vld_vec),
-        .o_sel_vld  (is_rs_mul_sel_vld),
-        .o_sel      (is_rs_mul_sel)
-    );
-
-    rs_issue_unit #(
-        .RS_ENT_NUM (`RS_LDST_ENT_NUM),
-        .RS_ENT_SEL (`RS_LDST_ENT_SEL)
-    ) u_rs_ldst_issue_unit (
-        .i_vld_vec  (rs_ldst_vld_vec),
-        .o_sel_vld  (is_rs_ldst_sel_vld),
-        .o_sel      (is_rs_ldst_sel)
-    );
-
-    assign is_rs_alu_vld  = is_rs_alu_sel_vld  && (!ex_alu_inaccessable);
-    assign is_rs_mul_vld  = is_rs_mul_sel_vld  && (!ex_mul_inaccessable);
-    assign is_rs_ldst_vld = is_rs_ldst_sel_vld && (!ex_ldst_inaccessable);
+    assign is_rs_alu_vld  = is_rs_alu_sel_vld  && ex_alu_accessable;
+    assign is_rs_mul_vld  = is_rs_mul_sel_vld  && ex_mul_accessable;
+    assign is_rs_ldst_vld = is_rs_ldst_sel_vld && ex_ldst_accessable;
 
     // ---------------------------------------------------- //
     // --------------------- EX-Stage --------------------- //
@@ -977,19 +972,19 @@ module pipeline (
     end
 
     exunit_alu u_exunit_alu (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        .o_inaccessable (ex_alu_inaccessable),
-        .i_is_vld       (is_rs_alu_vld),
-        .i_op_sel       (ex_alu_op_sel),
-        .i_src1_sel     (ex_alu_src1_sel),
-        .i_src2_sel     (ex_alu_src2_sel),
-        .i_rs1          (ex_alu_rs1_srcopr),
-        .i_pc           (ex_pc),
-        .i_rs2          (ex_alu_rs2_srcopr),
-        .i_imm          (ex_alu_imm),
-        .o_exfin        (exfin_alu),
-        .o_exfin_res    (exfin_alu_res)
+        .clk          (clk),
+        .rst_n        (rst_n),
+        .o_accessable (ex_alu_accessable),
+        .i_is_vld     (is_rs_alu_vld),
+        .i_op_sel     (ex_alu_op_sel),
+        .i_src1_sel   (ex_alu_src1_sel),
+        .i_src2_sel   (ex_alu_src2_sel),
+        .i_rs1        (ex_alu_rs1_srcopr),
+        .i_pc         (ex_pc),
+        .i_rs2        (ex_alu_rs2_srcopr),
+        .i_imm        (ex_alu_imm),
+        .o_exfin      (exfin_alu),
+        .o_exfin_res  (exfin_alu_res)
     );
 
     always @(posedge clk) begin
@@ -1014,17 +1009,17 @@ module pipeline (
     end
 
     exunit_mul u_exunit_mul (
-        .clk            (clk),
-        .rst_n          (rst_n),
-        .o_inaccessable (ex_mul_inaccessable),
-        .i_is_vld       (is_rs_mul_vld),
-        .i_signed1      (ex_mul_signed1), 
-        .i_signed2      (ex_mul_signed2),
-        .i_sel_high     (ex_mul_sel_high),
-        .i_src1         (ex_mul_rs1_srcopr),
-        .i_src2         (ex_mul_rs2_srcopr),
-        .o_exfin        (exfin_mul),
-        .o_exfin_res    (exfin_mul_res)
+        .clk          (clk),
+        .rst_n        (rst_n),
+        .o_accessable (ex_mul_accessable),
+        .i_is_vld     (is_rs_mul_vld),
+        .i_signed1    (ex_mul_signed1), 
+        .i_signed2    (ex_mul_signed2),
+        .i_sel_high   (ex_mul_sel_high),
+        .i_src1       (ex_mul_rs1_srcopr),
+        .i_src2       (ex_mul_rs2_srcopr),
+        .o_exfin      (exfin_mul),
+        .o_exfin_res  (exfin_mul_res)
     );
 
     always @(posedge clk) begin
@@ -1049,7 +1044,7 @@ module pipeline (
     exunit_ldst u_exunit_ldst (
         .clk              (clk),
         .rst_n            (rst_n),
-        .o_inaccessable   (ex_ldst_inaccessable),
+        .o_accessable     (ex_ldst_accessable),
         .i_is_vld         (is_rs_ldst_vld),
         .i_rs1            (ex_ldst_rs1_srcopr),
         .i_rs2            (ex_ldst_rs2_srcopr),

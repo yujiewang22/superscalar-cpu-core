@@ -5,7 +5,7 @@ module exunit_ldst (
     input  wire                        clk,
     input  wire                        rst_n,    
     // State
-    output wire                        o_inaccessable,
+    output wire                        o_accessable,
     // Ex
     input  wire                        i_is_vld,
     input  wire [`RV32_DATA_WIDTH-1:0] i_rs1,  
@@ -31,14 +31,14 @@ module exunit_ldst (
 
     reg  busy;
 
-    assign o_inaccessable = busy && i_is_st && i_stbuf_full;
+    assign o_accessable = !(busy && i_is_st && i_stbuf_full);
 
     // i_is_vld controls the busy signal one cycle ahead
     always @(posedge clk) begin
         if (!rst_n) begin
             busy <= 1'b0;
         end else begin
-            busy <= i_is_vld || o_inaccessable;
+            busy <= i_is_vld || (!o_accessable);
         end
     end
 

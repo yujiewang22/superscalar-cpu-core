@@ -170,9 +170,9 @@ sw x2 3(x1);
 
 lh x3 x1 3
 
-### rv32_lw.txt
+### （已完成）rv32_lw.txt
 
-mem(4)=全1   x3=全1
+4属于mem(1)   x3=全1
 
 addi x1 x0 1;
 
@@ -181,8 +181,6 @@ addi x2 x0 全1;
 sw x2 3(x1);
 
 lw x3 3(x1);
-
-顺序执行测试出错
 
 ### rv32_lbu.txt
 

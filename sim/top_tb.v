@@ -38,7 +38,7 @@ module top_tb();
     // ----load----
     // parameter INST_FILE_PATH = "./isa/rv32_lb.txt";
     // parameter INST_FILE_PATH = "./isa/rv32_lh.txt";
-     parameter INST_FILE_PATH = "./isa/rv32_lw.txt";
+    // parameter INST_FILE_PATH = "./isa/rv32_lw.txt";      // pass
     // parameter INST_FILE_PATH = "./isa/rv32_lbu.txt";
     // parameter INST_FILE_PATH = "./isa/rv32_lhu.txt";
     // ----store----
@@ -116,6 +116,7 @@ module top_tb();
             display_interact_dmem();
             display_com_stage();
             display_dmem();
+            display_stbuf();
         end
     end
     
@@ -262,9 +263,7 @@ module top_tb();
             // $display("rs_mul_free_vec         : %2b", u_top.u_pipeline.u_rs_mul_alloc_unit.free_vec);
             // $display("rs_mul_free_vec_masked  : %2b", u_top.u_pipeline.u_rs_mul_alloc_unit.free_vec_masked);   
             // $display("rs_mul_busy_vec         : %2b", u_top.u_pipeline.rs_mul_busy_vec);
-            // $display("rs_mul_vld_vec          : %2b", u_top.u_pipeline.rs_mul_vld_vec); 
-            $display("rs_ldst_free_vec         : %2b", u_top.u_pipeline.u_rs_ldst_alloc_unit.free_vec);
-            $display("rs_ldst_free_vec_masked  : %2b", u_top.u_pipeline.u_rs_ldst_alloc_unit.free_vec_masked);   
+            // $display("rs_mul_vld_vec          : %2b", u_top.u_pipeline.rs_mul_vld_vec);  
             $display("rs_ldst_busy_vec         : %2b", u_top.u_pipeline.rs_ldst_busy_vec);
             $display("rs_ldst_vld_vec          : %2b", u_top.u_pipeline.rs_ldst_vld_vec);  
         end
@@ -311,12 +310,15 @@ module top_tb();
             // $display("ex_mul_rrftag     : %d", u_top.u_pipeline.ex_mul_rrftag);
             // $display("exfin_mul         : %b", u_top.u_pipeline.exfin_mul);
             // $display("exfin_mul_res     : %b", u_top.u_pipeline.exfin_mul_res);
-            $display("ex_ld_rrftag      : %d", u_top.u_pipeline.ex_ld_rrftag);
-            $display("exfin_ld          : %b", u_top.u_pipeline.exfin_ld);
-            $display("exfin_ld_res      : %d", u_top.u_pipeline.exfin_ld_res);
-            $display("exfin_st          : %b", u_top.u_pipeline.exfin_st);
-            $display("exfin_st_addr     : %d", u_top.u_pipeline.exfin_st_addr);
-            $display("exfin_st_data     : %h", u_top.u_pipeline.exfin_st_data);         
+            $display("stbuf_addr_hit_sel : %d", u_top.u_pipeline.u_stbuf.stbuf_addr_hit_sel);
+            $display("stbuf_addr_hit     : %b", u_top.u_pipeline.stbuf_addr_hit);
+            $display("stbuf_rd_data      : %d", u_top.u_pipeline.stbuf_rd_data);
+            $display("ex_ld_rrftag       : %d", u_top.u_pipeline.ex_ld_rrftag);
+            $display("exfin_ld           : %b", u_top.u_pipeline.exfin_ld);
+            $display("exfin_ld_res       : %d", u_top.u_pipeline.exfin_ld_res);
+            $display("exfin_st           : %b", u_top.u_pipeline.exfin_st);
+            $display("exfin_st_addr      : %d", u_top.u_pipeline.exfin_st_addr);
+            $display("exfin_st_data      : %h", u_top.u_pipeline.exfin_st_data);         
         end
     endtask    
 
@@ -349,6 +351,15 @@ module top_tb();
             $display("mem[1]           : %h", u_top.u_dmem.mem[1]);
         end
     endtask  
+
+    task display_stbuf;
+        begin
+            $display("-----------------STBUF---------------------"); 
+            for(i = 0; i < 32 ; i = i + 1)begin
+                $display("STBUF[%2d] : %h", i, u_top.u_pipeline.u_stbuf.data[i]);
+            end
+        end
+    endtask 
 
 endmodule
 

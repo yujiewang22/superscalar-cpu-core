@@ -1,5 +1,4 @@
 `include "constants.vh"
-
 `default_nettype none
 
 module top (

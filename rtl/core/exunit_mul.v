@@ -4,7 +4,7 @@
 module exunit_mul (
     input  wire                        clk,
     input  wire                        rst_n,
-    output wire                        o_inaccessable,  
+    output wire                        o_accessable,  
     input  wire                        i_is_vld,
     input  wire                        i_signed1,
     input  wire                        i_signed2,
@@ -19,7 +19,7 @@ module exunit_mul (
     // So the busy signal have no shakehand with previous issue signal 
     reg busy;
 
-    assign o_inaccessable = 1'b0;
+    assign o_accessable = 1'b1;
 
     // i_is_vld controls the busy signal one cycle ahead
     always @(posedge clk) begin
