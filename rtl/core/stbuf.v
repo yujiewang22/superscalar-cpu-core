@@ -8,7 +8,7 @@ module stbuf (
     input  wire                        i_exfin_st,
     input  wire [`RV32_ADDR_WIDTH-1:0] i_exfin_st_addr,
     input  wire [`RV32_DATA_WIDTH-1:0] i_exfin_st_data,
-    input  wire                        i_com_stbuf,
+    input  wire                        i_com_st,
     input  wire                        i_dmem_occupy,
     output wire                        o_ret_stbuf,
     output wire [`RV32_ADDR_WIDTH-1:0] o_ret_stbuf_addr,
@@ -74,7 +74,7 @@ module stbuf (
                 vld[fin_ptr] <= 'd1;
                 fin_ptr      <= fin_ptr + 'd1;
             end
-            if (i_com_stbuf) begin
+            if (i_com_st) begin
                 com[com_ptr] <= 'd1;
                 com_ptr      <= com_ptr + 'd1;
             end

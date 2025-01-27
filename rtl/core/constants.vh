@@ -19,6 +19,16 @@
 `define DMEM_DATA_DEPTH       1024
 `define DMEM_ADDR_WIDTH       10
 
+// BTB
+`define BTB_ENT_NUM           512
+`define BTB_ENT_SEL           9
+
+// GSH
+`define GSH_PHT_ENT_NUM       1024
+`define GSH_PHT_ENT_SEL       10
+`define GSH_PHT_DATA_WIDTH    2
+`define GSH_GHR_WIDTH         10
+
 // ROB & RRF
 `define ROB_ENT_NUM           64
 `define ROB_ENT_SEL           6
@@ -30,7 +40,7 @@
 `define RS_ALU                `RS_SEL'd0
 `define RS_MUL                `RS_SEL'd1
 `define RS_LDST               `RS_SEL'd2
-`define RS_BRANCH             `RS_SEL'd3
+`define RS_BR                 `RS_SEL'd3
 
 // RS ENT
 `define RS_ALU_ENT_NUM        2
@@ -45,11 +55,12 @@
 `define STBUF_ENT_SEL         5
   
 // IMM TYPE
-`define IMM_TYPE_SEL          2
+`define IMM_TYPE_SEL          3
 `define IMM_TYPE_I            `IMM_TYPE_SEL'd0
 `define IMM_TYPE_S            `IMM_TYPE_SEL'd1
-`define IMM_TYPE_U            `IMM_TYPE_SEL'd2
-`define IMM_TYPE_J            `IMM_TYPE_SEL'd3
+`define IMM_TYPE_B            `IMM_TYPE_SEL'd3
+`define IMM_TYPE_J            `IMM_TYPE_SEL'd4
+`define IMM_TYPE_U            `IMM_TYPE_SEL'd5
 
 // ALU SRC
 `define ALU_SRC1_SEL          1    

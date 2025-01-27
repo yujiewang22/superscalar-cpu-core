@@ -4,15 +4,20 @@
 module imem (
     input  wire                        clk,
     input  wire [`RV32_ADDR_WIDTH-1:0] i_addr,
-    output reg  [`IMEM_DATA_WIDTH-1:0] o_rd_data
+    output wire [`IMEM_DATA_WIDTH-1:0] o_rd_data
 );
 
-    reg [`IMEM_DATA_WIDTH-1:0] mem [0:`IMEM_DATA_DEPTH-1];
-
-    always @(posedge clk) begin
-        // No need for reset
-        o_rd_data <= mem[i_addr[`IMEM_ADDR_WIDTH-1:0]];
-    end
+    ram_1r1w_1port #(
+        .ADDR_WIDTH (`IMEM_ADDR_WIDTH),
+        .DATA_DEPTH (`IMEM_DATA_DEPTH),
+        .DATA_WIDTH (`IMEM_DATA_WIDTH)
+    ) u_imem (
+        .clk        (clk),
+        .i_addr     (i_addr[`IMEM_ADDR_WIDTH-1:0]),
+        .o_rd_data  (o_rd_data),
+        .i_wr_en    (1'b0),
+        .i_wr_data  ()
+    );
 
 endmodule
 

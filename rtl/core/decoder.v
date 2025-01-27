@@ -22,8 +22,12 @@ module decoder (
     output reg                         o_mul_signed1,
     output reg                         o_mul_signed2,
     output reg                         o_mul_sel_high,   
-    // LDST
+    // Ldst
     output reg                         o_is_st,
+    // Br
+    output reg                         o_is_br,
+    output reg                         o_is_jal,
+    output reg                         o_is_jalr,
     // Rs
     output reg  [`RS_SEL-1:0]          o_rs_sel
 );
@@ -60,6 +64,9 @@ module decoder (
         o_alu_src1_sel = 'd0;
         o_alu_src2_sel = 'd0;
         o_is_st        = 'd0;
+        o_is_br        = 'd0;
+        o_is_jal       = 'd0;
+        o_is_jalr      = 'd0;
         o_rs_sel       = 'd0;
         case (opcode)
             `RV32_OPCODE_OP_IMM: begin
@@ -91,7 +98,28 @@ module decoder (
                 o_imm_type_sel = `IMM_TYPE_S;   
                 o_rs_sel       = `RS_LDST;
             end
-
+            `RV32_OPCODE_BR: begin
+                o_rs1_rd_en     = 'd1;
+                o_rs2_rd_en     = 'd1;
+                o_imm_type_sel  = `IMM_TYPE_B;
+                o_is_br         = 'd1;
+                o_rs_sel        = `RS_BR;
+            end
+            `RV32_OPCODE_JAL: begin
+                o_rd_wr_en     = 'd1;
+                o_imm_type_sel = `IMM_TYPE_J;
+                o_is_br        = 'd1;
+                o_is_jal       = 'd1;
+                o_rs_sel       = `RS_BR;
+            end
+            `RV32_OPCODE_JALR: begin
+                o_rs1_rd_en    = 'd1;
+                o_rd_wr_en     = 'd1;
+                o_imm_type_sel = `IMM_TYPE_I;
+                o_is_br        = 'd1;
+                o_is_jalr      = 'd1;
+                o_rs_sel       = `RS_BR;
+            end
         endcase
     end
 

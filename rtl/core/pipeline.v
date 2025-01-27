@@ -33,18 +33,23 @@ module pipeline (
     wire [`RV32_PC_WIDTH-1:0]   if_pc;
     wire [`IMEM_DATA_WIDTH-1:0] if_imem_rd_data;
 
-    wire                        if_inst_invld_1;
-    wire                        if_inst_invld_2;
+    wire                        if_inst_vld_1;
+    wire                        if_inst_vld_2;
     wire [`RV32_INST_WIDTH-1:0] if_inst_1;
     wire [`RV32_INST_WIDTH-1:0] if_inst_2;
+
+    wire [`RV32_PC_WIDTH-1:0]   if_pc_1;
+    wire [`RV32_PC_WIDTH-1:0]   if_pc_2;
+    wire [`GSH_GHR_WIDTH-1:0]   if_ghr;
+    wire                        if_brpred_taken;
+    wire [`RV32_PC_WIDTH-1:0]   if_pc_btb;
 
     // ---------------------------------------------------- //
     // --------------------- ID-Stage --------------------- //
     // ---------------------------------------------------- // 
 
-    reg                         id_pc;
-
-    reg                         id_inst_invld_1;
+    reg                         id_pc_1;
+    reg                         id_inst_vld_1;
     reg  [`RV32_INST_WIDTH-1:0] id_inst_1;
     wire                        id_illegal_1;
     wire                        id_rs1_rd_en_1;
@@ -61,9 +66,13 @@ module pipeline (
     wire                        id_mul_signed2_1;
     wire                        id_mul_sel_high_1;
     wire                        id_is_st_1;
+    wire                        id_is_br_1;
+    wire                        id_is_jal_1;
+    wire                        id_is_jalr_1;
     wire [`RS_SEL-1:0]          id_rs_sel_1;
 
-    reg                         id_inst_invld_2;
+    reg                         id_pc_2;
+    reg                         id_inst_vld_2;
     reg  [`RV32_INST_WIDTH-1:0] id_inst_2;
     wire                        id_illegal_2;
     wire                        id_rs1_rd_en_2;
@@ -80,16 +89,18 @@ module pipeline (
     wire                        id_mul_signed2_2;
     wire                        id_mul_sel_high_2;
     wire                        id_is_st_2;
+    wire                        id_is_br_2;
+    wire                        id_is_jal_2;
+    wire                        id_is_jalr_2;
     wire [`RS_SEL-1:0]          id_rs_sel_2;
+
+    reg  [`GSH_GHR_WIDTH-1:0]   id_ghr;
 
     // ---------------------------------------------------- //
     // --------------------- DP-Stage --------------------- //
     // ---------------------------------------------------- // 
 
-    reg  [`RV32_PC_WIDTH-1:0]   dp_pc;
-    wire [`RV32_PC_WIDTH-1:0]   dp_pc_1;
-    wire [`RV32_PC_WIDTH-1:0]   dp_pc_2;
-
+    reg  [`RV32_PC_WIDTH-1:0]   dp_pc_1;
     reg  [`RV32_INST_WIDTH-1:0] dp_inst_1;
     reg                         dp_rs1_rd_en_1;
     reg                         dp_rs2_rd_en_1;
@@ -105,8 +116,12 @@ module pipeline (
     reg                         dp_mul_signed2_1;
     reg                         dp_mul_sel_high_1;
     reg                         dp_is_st_1;
+    reg                         dp_is_br_1;
+    reg                         dp_is_jal_1;
+    reg                         dp_is_jalr_1;
     reg  [`RS_SEL-1:0]          dp_rs_sel_1;
 
+    reg  [`RV32_PC_WIDTH-1:0]   dp_pc_2;
     reg  [`RV32_INST_WIDTH-1:0] dp_inst_2;
     reg                         dp_rs1_rd_en_2;
     reg                         dp_rs2_rd_en_2;
@@ -122,7 +137,12 @@ module pipeline (
     reg                         dp_mul_signed2_2;
     reg                         dp_mul_sel_high_2;
     reg                         dp_is_st_2;
+    reg                         dp_is_br_2;
+    reg                         dp_is_jal_2;
+    reg                         dp_is_jalr_2;
     reg  [`RS_SEL-1:0]          dp_rs_sel_2;
+
+    reg  [`GSH_GHR_WIDTH-1:0]   dp_ghr;
 
     reg                         dp_vld_1;
     reg                         dp_vld_2;
@@ -227,6 +247,7 @@ module pipeline (
     wire                        is_rs_alu_vld;
     wire                        is_rs_mul_vld;
     wire                        is_rs_ldst_vld;
+    wire                        is_rs_br_vld;
 
     wire [`ALU_OP_SEL-1:0]      is_alu_op_sel;
     wire [`ALU_SRC1_SEL-1:0]    is_alu_src1_sel;
@@ -249,6 +270,15 @@ module pipeline (
     wire [`RV32_DATA_WIDTH-1:0] is_ldst_imm;
     wire                        is_is_st;
     wire [`RRF_ENT_SEL-1:0]     is_ldst_rrftag;
+
+    wire                        is_br_is_jal;
+    wire                        is_br_is_jalr;
+    wire [`ALU_OP_SEL-1:0]      is_br_alu_op;
+    wire [`RV32_DATA_WIDTH-1:0] is_br_rs1_srcopr;
+    wire [`RV32_DATA_WIDTH-1:0] is_br_rs2_srcopr;
+    wire [`RV32_PC_WIDTH-1:0]   is_br_pc;
+    wire [`RV32_DATA_WIDTH-1:0] is_br_imm;
+    wire [`RRF_ENT_SEL-1:0]     is_br_rrftag; 
 
     // ---------------------------------------------------- //
     // --------------------- EX-Stage --------------------- //
@@ -291,13 +321,25 @@ module pipeline (
     wire [`RV32_DATA_WIDTH-1:0] exfin_st_data;
 
     wire                        stbuf_full;
-    wire                        com_stbuf;
     wire                        dmem_occupy;
     wire                        ret_stbuf;
     wire [`RV32_ADDR_WIDTH-1:0] ret_stbuf_addr;
     wire [`RV32_DATA_WIDTH-1:0] ret_stbuf_data;
     wire                        stbuf_addr_hit;
     wire [`RV32_DATA_WIDTH-1:0] stbuf_rd_data;
+
+    wire                        ex_br_accessable;
+    reg                         ex_br_is_jal;
+    reg                         ex_br_is_jalr;
+    reg  [`ALU_OP_SEL-1:0]      ex_br_alu_op;
+    reg  [`RV32_DATA_WIDTH-1:0] ex_br_rs1_srcopr;
+    reg  [`RV32_DATA_WIDTH-1:0] ex_br_rs2_srcopr;
+    reg  [`RV32_PC_WIDTH-1:0]   ex_br_pc;
+    reg  [`RV32_DATA_WIDTH-1:0] ex_br_imm;
+    reg  [`RRF_ENT_SEL-1:0]     ex_br_rrftag; 
+    wire                        exfin_br;
+    wire [`RV32_PC_WIDTH-1:0]   exfin_br_jmpaddr;
+    wire                        exfin_br_jmpcond;
 
     // ---------------------------------------------------- //
     // -------------------- COM-Stage --------------------- //
@@ -316,6 +358,13 @@ module pipeline (
     wire                        com_rd_wr_en_2;
     wire [`RV32_ARF_SEL-1:0]    com_rd_wr_addr_2;
     wire [`RV32_DATA_WIDTH-1:0] com_rd_wr_data_2;
+
+    wire                        com_st;
+    wire                        com_br;
+    wire [`RV32_PC_WIDTH-1:0]   com_pc;
+    wire [`GSH_GHR_WIDTH-1:0]   com_ghr;
+    wire [`RV32_PC_WIDTH-1:0]   com_jmpaddr;
+    wire                        com_jmpcond;
 
     // ******************************************************************* //
     //                           Instantiations                            //
@@ -346,19 +395,41 @@ module pipeline (
     // ---------------------------------------------------- //  
 
     pc_reg u_pc_reg (
-        .clk     (clk),
-        .rst_n   (rst_n),
-        .i_stall (stall_if),
-        .o_pc    (if_pc)
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .i_stall        (stall_if),
+        .i_brpred_taken (if_brpred_taken), 
+        .i_pc_btb       (if_pc_btb),
+        .o_pc           (if_pc)
     );
+
+    assign if_pc_1 = if_pc;
+    assign if_pc_2 = if_pc + 'd4;
 
     inst_sel_unit u_inst_sel_unit (
         .i_sel          (if_pc[3:2]),
         .i_imem_rd_data (if_imem_rd_data),
-        .o_inst_invld_1 (if_inst_invld_1),
-        .o_inst_invld_2 (if_inst_invld_2),
+        .o_inst_vld_1   (if_inst_vld_1),
+        .o_inst_vld_2   (if_inst_vld_2),
         .o_inst_1       (if_inst_1),
         .o_inst_2       (if_inst_2)
+    );
+
+    br_predictor u_br_predictor (
+        .clk            (clk),
+        .rst_n          (rst_n),
+        .i_inst_vld_1   (if_inst_vld_1),
+        .i_inst_vld_2   (if_inst_vld_2),
+        .i_pc_1         (if_pc_1),
+        .i_pc_2         (if_pc_2),
+        .o_ghr          (if_ghr),
+        .o_brpred_taken (if_brpred_taken),
+        .o_pc_btb       (if_pc_btb),
+        .i_com_br       (com_br),
+        .i_com_pc       (com_pc),
+        .i_com_ghr      (com_ghr),
+        .i_com_jmpaddr  (com_jmpaddr),
+        .i_com_jmpcond  (com_jmpcond)
     );
 
     // ---------------------------------------------------- //
@@ -367,18 +438,22 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            id_pc           <= 'd0;
-            id_inst_invld_1 <= 'd1; // Default is invld
-            id_inst_invld_2 <= 'd1; // Default is invld
-            id_inst_1       <= 'd0;
-            id_inst_2       <= 'd0;
+            id_pc_1       <= 'd0;
+            id_pc_2       <= 'd0;
+            id_inst_vld_1 <= 'd0; 
+            id_inst_vld_2 <= 'd0; 
+            id_inst_1     <= 'd0;
+            id_inst_2     <= 'd0;
+            id_ghr        <= 'd0;
         end else if (stall_id) begin
         end else begin
-            id_pc           <= if_pc;
-            id_inst_invld_1 <= if_inst_invld_1;
-            id_inst_invld_2 <= if_inst_invld_2;
-            id_inst_1       <= if_inst_1;
-            id_inst_2       <= if_inst_2;
+            id_pc_1       <= if_pc_1;
+            id_pc_2       <= if_pc_2;
+            id_inst_vld_1 <= if_inst_vld_1;
+            id_inst_vld_2 <= if_inst_vld_2;
+            id_inst_1     <= if_inst_1;
+            id_inst_2     <= if_inst_2;
+            id_ghr        <= if_ghr;
         end
     end
 
@@ -399,6 +474,9 @@ module pipeline (
         .o_mul_signed2  (id_mul_signed2_1),
         .o_mul_sel_high (id_mul_sel_high_1), 
         .o_is_st        (id_is_st_1),
+        .o_is_br        (id_is_br_1),
+        .o_is_jal       (id_is_jal_1),
+        .o_is_jalr      (id_is_jalr_1),
         .o_rs_sel       (id_rs_sel_1)
     );
 
@@ -419,6 +497,9 @@ module pipeline (
         .o_mul_signed2  (id_mul_signed2_2),
         .o_mul_sel_high (id_mul_sel_high_2),   
         .o_is_st        (id_is_st_2),      
+        .o_is_br        (id_is_br_2),
+        .o_is_jal       (id_is_jal_2),
+        .o_is_jalr      (id_is_jalr_2),
         .o_rs_sel       (id_rs_sel_2)
     );
 
@@ -426,87 +507,96 @@ module pipeline (
     // --------------------- DP-Stage --------------------- //
     // ---------------------------------------------------- //  
 
-    assign dp_pc_1 = dp_pc;
-    assign dp_pc_2 = dp_pc + 'd4;
-
     always @(posedge clk) begin
         if (!rst_n) begin
-            dp_pc              <= 'd0;
+            dp_pc_1           <= 'd0;
+            dp_vld_1          <= 'd0;
+            dp_inst_1         <= 'd0;
+            dp_rs1_rd_en_1    <= 'd0;
+            dp_rs2_rd_en_1    <= 'd0;
+            dp_rd_wr_en_1     <= 'd0;
+            dp_rs1_rd_addr_1  <= 'd0;
+            dp_rs2_rd_addr_1  <= 'd0;
+            dp_rd_wr_addr_1   <= 'd0;
+            dp_imm_type_sel_1 <= 'd0;
+            dp_alu_op_sel_1   <= 'd0;
+            dp_alu_src1_sel_1 <= 'd0;
+            dp_alu_src2_sel_1 <= 'd0;
+            dp_mul_signed1_1  <= 'd0;   
+            dp_mul_signed2_1  <= 'd0;  
+            dp_mul_sel_high_1 <= 'd0;          
+            dp_is_st_1        <= 'd0;  
+            dp_is_br_1        <= 'd0;
+            dp_is_jal_1       <= 'd0;
+            dp_is_jalr_1      <= 'd0;
+            dp_rs_sel_1       <= 'd0;
 
-            dp_vld_1           <= 'd0;
-            dp_inst_1          <= 'd0;
-            dp_rs1_rd_en_1     <= 'd0;
-            dp_rs2_rd_en_1     <= 'd0;
-            dp_rd_wr_en_1      <= 'd0;
-            dp_rs1_rd_addr_1   <= 'd0;
-            dp_rs2_rd_addr_1   <= 'd0;
-            dp_rd_wr_addr_1    <= 'd0;
-            dp_imm_type_sel_1  <= 'd0;
-            dp_alu_op_sel_1    <= 'd0;
-            dp_alu_src1_sel_1  <= 'd0;
-            dp_alu_src2_sel_1  <= 'd0;
-            dp_mul_signed1_1   <= 'd0;   
-            dp_mul_signed2_1   <= 'd0;  
-            dp_mul_sel_high_1  <= 'd0;          
-            dp_is_st_1         <= 'd0;   
-            dp_rs_sel_1        <= 'd0;
-
-            dp_vld_2           <= 'd0;
-            dp_inst_2          <= 'd0;
-            dp_rs1_rd_en_2     <= 'd0;
-            dp_rs2_rd_en_2     <= 'd0;
-            dp_rd_wr_en_2      <= 'd0;
-            dp_rs1_rd_addr_2   <= 'd0;
-            dp_rs2_rd_addr_2   <= 'd0;
-            dp_rd_wr_addr_2    <= 'd0;
-            dp_imm_type_sel_2  <= 'd0;
-            dp_alu_op_sel_2    <= 'd0;
-            dp_alu_src1_sel_2  <= 'd0;
-            dp_alu_src2_sel_2  <= 'd0;
-            dp_mul_signed1_1   <= 'd0;   
-            dp_mul_signed2_1   <= 'd0;  
-            dp_mul_sel_high_1  <= 'd0;  
-            dp_is_st_2         <= 'd0;   
-            dp_rs_sel_2        <= 'd0;
+            dp_pc_2           <= 'd0;   
+            dp_vld_2          <= 'd0;
+            dp_inst_2         <= 'd0;
+            dp_rs1_rd_en_2    <= 'd0;
+            dp_rs2_rd_en_2    <= 'd0;
+            dp_rd_wr_en_2     <= 'd0;
+            dp_rs1_rd_addr_2  <= 'd0;
+            dp_rs2_rd_addr_2  <= 'd0;
+            dp_rd_wr_addr_2   <= 'd0;
+            dp_imm_type_sel_2 <= 'd0;
+            dp_alu_op_sel_2   <= 'd0;
+            dp_alu_src1_sel_2 <= 'd0;
+            dp_alu_src2_sel_2 <= 'd0;
+            dp_mul_signed1_1  <= 'd0;   
+            dp_mul_signed2_1  <= 'd0;  
+            dp_mul_sel_high_1 <= 'd0;  
+            dp_is_st_2        <= 'd0;  
+            dp_is_br_2        <= 'd0;
+            dp_is_jal_2       <= 'd0;
+            dp_is_jalr_2      <= 'd0; 
+            dp_rs_sel_2       <= 'd0;
         end else if (stall_dp) begin
         end else begin
-            dp_pc              <= id_pc;
+            dp_pc_1           <= id_pc_1;
+            dp_vld_1          <= id_inst_vld_1 && (!id_illegal_1);
+            dp_inst_1         <= id_inst_1;
+            dp_rs1_rd_en_1    <= id_rs1_rd_en_1;
+            dp_rs2_rd_en_1    <= id_rs2_rd_en_1;
+            dp_rd_wr_en_1     <= id_rd_wr_en_1;
+            dp_rs1_rd_addr_1  <= id_rs1_rd_addr_1;
+            dp_rs2_rd_addr_1  <= id_rs2_rd_addr_1;
+            dp_rd_wr_addr_1   <= id_rd_wr_addr_1;
+            dp_imm_type_sel_1 <= id_imm_type_sel_1;
+            dp_alu_op_sel_1   <= id_alu_op_sel_1;
+            dp_alu_src1_sel_1 <= id_alu_src1_sel_1;
+            dp_alu_src2_sel_1 <= id_alu_src2_sel_1;
+            dp_mul_signed1_1  <= id_mul_signed1_1;   
+            dp_mul_signed2_1  <= id_mul_signed2_1;  
+            dp_mul_sel_high_1 <= id_mul_sel_high_1; 
+            dp_is_st_1        <= id_is_st_1;   
+            dp_is_br_1        <= id_is_br_1;
+            dp_is_jal_1       <= id_is_jal_1;
+            dp_is_jalr_1      <= id_is_jalr_1;
+            dp_rs_sel_1       <= id_rs_sel_1;
 
-            dp_vld_1           <= !(id_inst_invld_1 || id_illegal_1);
-            dp_inst_1          <= id_inst_1;
-            dp_rs1_rd_en_1     <= id_rs1_rd_en_1;
-            dp_rs2_rd_en_1     <= id_rs2_rd_en_1;
-            dp_rd_wr_en_1      <= id_rd_wr_en_1;
-            dp_rs1_rd_addr_1   <= id_rs1_rd_addr_1;
-            dp_rs2_rd_addr_1   <= id_rs2_rd_addr_1;
-            dp_rd_wr_addr_1    <= id_rd_wr_addr_1;
-            dp_imm_type_sel_1  <= id_imm_type_sel_1;
-            dp_alu_op_sel_1    <= id_alu_op_sel_1;
-            dp_alu_src1_sel_1  <= id_alu_src1_sel_1;
-            dp_alu_src2_sel_1  <= id_alu_src2_sel_1;
-            dp_mul_signed1_1   <= id_mul_signed1_1;   
-            dp_mul_signed2_1   <= id_mul_signed2_1;  
-            dp_mul_sel_high_1  <= id_mul_sel_high_1; 
-            dp_is_st_1         <= id_is_st_1;   
-            dp_rs_sel_1        <= id_rs_sel_1;
-
-            dp_vld_2           <= !(id_inst_invld_2 || id_illegal_2);
-            dp_inst_2          <= id_inst_2;
-            dp_rs1_rd_en_2     <= id_rs1_rd_en_2;
-            dp_rs2_rd_en_2     <= id_rs2_rd_en_2;
-            dp_rd_wr_en_2      <= id_rd_wr_en_2;
-            dp_rs1_rd_addr_2   <= id_rs1_rd_addr_2;
-            dp_rs2_rd_addr_2   <= id_rs2_rd_addr_2;
-            dp_rd_wr_addr_2    <= id_rd_wr_addr_2;
-            dp_imm_type_sel_2  <= id_imm_type_sel_2;
-            dp_alu_op_sel_2    <= id_alu_op_sel_2;
-            dp_alu_src1_sel_2  <= id_alu_src1_sel_2;
-            dp_alu_src2_sel_2  <= id_alu_src2_sel_2;
-            dp_mul_signed1_1   <= id_mul_signed1_1;   
-            dp_mul_signed2_1   <= id_mul_signed2_1;  
-            dp_mul_sel_high_1  <= id_mul_sel_high_1; 
-            dp_is_st_2         <= id_is_st_2; 
-            dp_rs_sel_2        <= id_rs_sel_2;
+            dp_pc_2           <= id_pc_2;
+            dp_vld_2          <= id_inst_vld_2 && (!id_illegal_2);
+            dp_inst_2         <= id_inst_2;
+            dp_rs1_rd_en_2    <= id_rs1_rd_en_2;
+            dp_rs2_rd_en_2    <= id_rs2_rd_en_2;
+            dp_rd_wr_en_2     <= id_rd_wr_en_2;
+            dp_rs1_rd_addr_2  <= id_rs1_rd_addr_2;
+            dp_rs2_rd_addr_2  <= id_rs2_rd_addr_2;
+            dp_rd_wr_addr_2   <= id_rd_wr_addr_2;
+            dp_imm_type_sel_2 <= id_imm_type_sel_2;
+            dp_alu_op_sel_2   <= id_alu_op_sel_2;
+            dp_alu_src1_sel_2 <= id_alu_src1_sel_2;
+            dp_alu_src2_sel_2 <= id_alu_src2_sel_2;
+            dp_mul_signed1_1  <= id_mul_signed1_1;   
+            dp_mul_signed2_1  <= id_mul_signed2_1;  
+            dp_mul_sel_high_1 <= id_mul_sel_high_1; 
+            dp_is_st_2        <= id_is_st_2; 
+            dp_is_br_2        <= id_is_br_2;
+            dp_is_jal_2       <= id_is_jal_2;
+            dp_is_jalr_2      <= id_is_jalr_2;
+            dp_rs_sel_2       <= id_rs_sel_2;
         end
     end
 
@@ -948,14 +1038,14 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_alu_op_sel     <= 'd0;
-            ex_alu_src1_sel   <= 'd0;
-            ex_alu_src2_sel   <= 'd0;
-            ex_alu_rs1_srcopr <= 'd0;
-            ex_pc             <= 'd0;
-            ex_alu_rs2_srcopr <= 'd0;
-            ex_alu_imm        <= 'd0;
-            ex_alu_rrftag     <= 'd0;
+            ex_alu_op_sel         <= 'd0;
+            ex_alu_src1_sel       <= 'd0;
+            ex_alu_src2_sel       <= 'd0;
+            ex_alu_rs1_srcopr     <= 'd0;
+            ex_pc                 <= 'd0;
+            ex_alu_rs2_srcopr     <= 'd0;
+            ex_alu_imm            <= 'd0;
+            ex_alu_rrftag         <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_alu_vld) begin
@@ -989,12 +1079,12 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-                ex_mul_signed1    <= 'd0;
-                ex_mul_signed2    <= 'd0;
-                ex_mul_sel_high   <= 'd0;
-                ex_mul_rs1_srcopr <= 'd0;
-                ex_mul_rs2_srcopr <= 'd0;  
-                ex_alu_rrftag     <= 'd0;
+            ex_mul_signed1        <= 'd0;
+            ex_mul_signed2        <= 'd0;
+            ex_mul_sel_high       <= 'd0;
+            ex_mul_rs1_srcopr     <= 'd0;
+            ex_mul_rs2_srcopr     <= 'd0;  
+            ex_alu_rrftag         <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_mul_vld) begin
@@ -1024,11 +1114,11 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_ldst_rs1_srcopr <= 'd0;
-            ex_ldst_rs2_srcopr <= 'd0;
-            ex_ldst_imm        <= 'd0;
-            ex_is_st           <= 'd0;
-            ex_ldst_rrftag     <= 'd0;
+            ex_ldst_rs1_srcopr     <= 'd0;
+            ex_ldst_rs2_srcopr     <= 'd0;
+            ex_ldst_imm            <= 'd0;
+            ex_is_st               <= 'd0;
+            ex_ldst_rrftag         <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_ldst_vld) begin
@@ -1072,7 +1162,7 @@ module pipeline (
         .i_exfin_st       (exfin_st),
         .i_exfin_st_addr  (exfin_st_addr),
         .i_exfin_st_data  (exfin_st_data),
-        .i_com_stbuf      (com_stbuf),
+        .i_com_st         (com_st),
         .i_dmem_occupy    (dmem_occupy),
         .o_ret_stbuf      (ret_stbuf),
         .o_ret_stbuf_addr (ret_stbuf_addr),
@@ -1081,7 +1171,69 @@ module pipeline (
         .o_stbuf_addr_hit (stbuf_addr_hit),
         .o_stbuf_rd_data  (stbuf_rd_data)
     );
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            ex_mul_signed1        <= 'd0;
+            ex_mul_signed2        <= 'd0;
+            ex_mul_sel_high       <= 'd0;
+            ex_mul_rs1_srcopr     <= 'd0;
+            ex_mul_rs2_srcopr     <= 'd0;  
+            ex_alu_rrftag         <= 'd0;
+        end else begin    
+            // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
+            if (is_rs_mul_vld) begin
+                ex_mul_signed1    <= is_mul_signed1;
+                ex_mul_signed2    <= is_mul_signed2;
+                ex_mul_sel_high   <= is_mul_sel_high;
+                ex_mul_rs1_srcopr <= is_mul_rs1_srcopr;
+                ex_mul_rs2_srcopr <= is_mul_rs2_srcopr;      
+                ex_mul_rrftag     <= is_mul_rrftag;
+            end
+        end
+    end
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            ex_br_is_jal         <= 'd0;
+            ex_br_is_jalr        <= 'd0;
+            ex_br_alu_op         <= 'd0;
+            ex_br_rs1_srcopr     <= 'd0;
+            ex_br_rs2_srcopr     <= 'd0;
+            ex_br_pc             <= 'd0;
+            ex_br_imm            <= 'd0;
+            ex_br_rrftag         <= 'd0;
+        end else begin      
+            // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
+            if (is_rs_br_vld) begin
+                ex_br_is_jal     <= is_br_is_jal;
+                ex_br_is_jalr    <= is_br_is_jalr;
+                ex_br_alu_op     <= is_br_alu_op;
+                ex_br_rs1_srcopr <= is_br_rs1_srcopr;
+                ex_br_rs2_srcopr <= is_br_rs2_srcopr;
+                ex_br_pc         <= is_br_pc;
+                ex_br_imm        <= is_br_imm;
+                ex_br_rrftag     <= is_br_rrftag;
+            end
+        end
+    end
 
+    exunit_br u_exunit_br (
+        .clk             (clk),
+        .rst_n           (rst_n),
+        .o_accessable    (ex_br_accessable),
+        .i_is_vld        (is_rs_br_vld),
+        .i_is_jal        (ex_br_is_jal),
+        .i_is_jalr       (ex_br_is_jalr),
+        .i_alu_op        (ex_br_alu_op),
+        .i_rs1           (ex_br_rs1_srcopr),
+        .i_rs2           (ex_br_rs2_srcopr),
+        .i_pc            (ex_br_pc),
+        .i_imm           (ex_br_imm),
+        .i_pred_jmpaddr  (),
+        .o_exfin         (exfin_br),
+        .o_exfin_jmpaddr (exfin_br_jmpaddr),
+        .o_exfin_jmpcond (exfin_br_jmpcond),
+        .o_exfin_predsuc ()
+    );
     // ---------------------------------------------------- //
     // -------------------- COM-Stage --------------------- //
     // ---------------------------------------------------- //  
@@ -1095,11 +1247,17 @@ module pipeline (
         .i_dp_rd_wr_en_1    (dp_rd_wr_en_1),
         .i_dp_rd_wr_addr_1  (dp_rd_wr_addr_1),
         .i_dp_is_st_1       (dp_is_st_1),
+        .i_dp_is_br_1       (dp_is_br_1),
+        .i_dp_pc_1          (dp_pc_1),
+        .i_dp_ghr_1         (dp_ghr),   // Share the same ghr       
         .i_dp_vld_2         (dp_vld_2),
         .i_dp_ptr_2         (dp_ptr_2),
         .i_dp_rd_wr_en_2    (dp_rd_wr_en_2),
         .i_dp_rd_wr_addr_2  (dp_rd_wr_addr_2),
         .i_dp_is_st_2       (dp_is_st_2),
+        .i_dp_is_br_2       (dp_is_br_2),
+        .i_dp_pc_2          (dp_pc_2),
+        .i_dp_ghr_2         (dp_ghr),   // Share the same ghr   
         .i_ex_alu_rrftag    (ex_alu_rrftag),
         .i_exfin_alu        (exfin_alu),
         .i_ex_mul_rrftag    (ex_mul_rrftag),
@@ -1108,6 +1266,10 @@ module pipeline (
         .i_exfin_ld         (exfin_ld),   
         .i_ex_st_rrftag     (ex_ldst_rrftag), 
         .i_exfin_st         (exfin_st), 
+        .i_ex_br_rrftag     (ex_br_rrftag),
+        .i_exfin_br         (exfin_br),
+        .i_exfin_br_jmpaddr (exfin_br_jmpaddr),
+        .i_exfin_br_jmpcond (exfin_br_jmpcond),        
         .o_com_num          (com_num),
         .o_com_vld_1        (com_vld_1),
         .o_com_ptr_1        (com_ptr_1),
@@ -1117,7 +1279,12 @@ module pipeline (
         .o_com_ptr_2        (com_ptr_2),
         .o_com_rd_wr_en_2   (com_rd_wr_en_2),
         .o_com_rd_wr_addr_2 (com_rd_wr_addr_2),
-        .o_com_stbuf        (com_stbuf)
+        .o_com_st           (com_st),
+        .o_com_br           (com_br),
+        .o_com_pc           (com_pc),
+        .o_com_ghr          (com_ghr),
+        .o_com_jmpaddr      (com_jmpaddr),
+        .o_com_jmpcond      (com_jmpcond)
     );
 
 endmodule
