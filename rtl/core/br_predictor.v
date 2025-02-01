@@ -9,7 +9,7 @@ module br_predictor (
     input  wire [`RV32_PC_WIDTH-1:0] i_pc_1,
     input  wire [`RV32_PC_WIDTH-1:0] i_pc_2,
     output reg  [`GSH_GHR_WIDTH-1:0] o_ghr,
-    output wire                      o_brpred_taken,
+    output wire                      o_pred_jmp,
     output wire [`RV32_PC_WIDTH-1:0] o_pc_btb,
     input  wire                      i_com_br,
     input  wire [`RV32_PC_WIDTH-1:0] i_com_pc,
@@ -47,7 +47,7 @@ module br_predictor (
         .i_jmpcond      (i_com_jmpcond)
     ); 
 
-    assign o_brpred_taken = hit_btb && pred_jmpcond;
+    assign o_pred_jmp = hit_btb && pred_jmpcond;
 
 endmodule
 

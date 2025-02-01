@@ -20,16 +20,16 @@ module alloc_issue_disorder #(
 );
 
     alloc_unit #(
-        .ENT_NUM       (ENT_NUM),
-        .ENT_SEL       (ENT_SEL)
+        .ENT_NUM     (ENT_NUM),
+        .ENT_SEL     (ENT_SEL)
     ) u_alloc_unit (
-        .i_busy_vec    (i_busy_vec),
-        .i_req_num     (i_req_num),
-        .o_allocable   (o_allocable),
-        .o_sel_vld_1   (o_alloc_sel_vld_1),
-        .o_sel_vld_2   (o_alloc_sel_vld_2),
-        .o_sel_1       (o_alloc_sel_1),
-        .o_sel_2       (o_alloc_sel_2)
+        .i_busy_vec  (i_busy_vec),
+        .i_req_num   (i_req_num),
+        .o_allocable (o_allocable),
+        .o_sel_vld_1 (o_alloc_sel_vld_1),
+        .o_sel_vld_2 (o_alloc_sel_vld_2),
+        .o_sel_1     (o_alloc_sel_1),
+        .o_sel_2     (o_alloc_sel_2)
     );
 
     issue_unit #(

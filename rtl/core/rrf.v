@@ -27,6 +27,9 @@ module rrf (
     input  wire [`RRF_ENT_SEL-1:0]        i_ex_ld_rrftag,
     input  wire                           i_exfin_ld,
     input  wire [`RV32_DATA_WIDTH-1:0]    i_exfin_ld_res,
+    input  wire [`RRF_ENT_SEL-1:0]        i_ex_jal_jalr_rrftag,
+    input  wire                           i_exfin_jal_jalr,
+    input  wire [`RV32_DATA_WIDTH-1:0]    i_exfin_jal_jalr_res,
     // Com-stage read to arf
     input  wire                           i_com_vld_1,
     input  wire [`RRF_ENT_SEL-1:0]        i_com_ptr_1,
@@ -64,6 +67,9 @@ module rrf (
             if (i_exfin_ld) begin
                 vld[i_ex_ld_rrftag] <= 'd1;
             end
+            if (i_exfin_jal_jalr) begin
+                vld[i_ex_jal_jalr_rrftag] <= 'd1;
+            end
             if (i_com_vld_1) begin
                 vld[i_com_ptr_1] <= 'd0;
             end
@@ -84,6 +90,9 @@ module rrf (
         end
         if (i_exfin_ld) begin
             data[i_ex_ld_rrftag] <= i_exfin_ld_res;
+        end
+        if (i_exfin_jal_jalr) begin
+            data[i_ex_jal_jalr_rrftag] <= i_exfin_jal_jalr_res;
         end
     end
 

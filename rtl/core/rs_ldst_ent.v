@@ -32,7 +32,10 @@ module rs_ldst_ent (
     input  wire [`RV32_DATA_WIDTH-1:0] i_exfin_mul_res,
     input  wire [`RRF_ENT_SEL-1:0]     i_ex_ld_rrftag,
     input  wire                        i_exfin_ld,
-    input  wire [`RV32_DATA_WIDTH-1:0] i_exfin_ld_res
+    input  wire [`RV32_DATA_WIDTH-1:0] i_exfin_ld_res,
+    input  wire [`RRF_ENT_SEL-1:0]     i_ex_jal_jalr_rrftag,
+    input  wire                        i_exfin_jal_jalr,
+    input  wire [`RV32_DATA_WIDTH-1:0] i_exfin_jal_jalr_res
 );
 
     reg                         rs1_srcopr_vld;
@@ -87,35 +90,41 @@ module rs_ldst_ent (
     end
 
     srcopr_fwd_unit u_srcopr_fwd_unit_1 (
-        .i_srcopr_vld       (rs1_srcopr_vld),
-        .i_srcopr           (o_rs1_srcopr),
-        .i_ex_alu_rrftag    (i_ex_alu_rrftag),
-        .i_exfin_alu        (i_exfin_alu),
-        .i_exfin_alu_res    (i_exfin_alu_res),
-        .i_ex_mul_rrftag    (i_ex_mul_rrftag),
-        .i_exfin_mul        (i_exfin_mul),
-        .i_exfin_mul_res    (i_exfin_mul_res),
-        .i_ex_ld_rrftag     (i_ex_ld_rrftag),
-        .i_exfin_ld         (i_exfin_ld),
-        .i_exfin_ld_res     (i_exfin_ld_res),
-        .o_srcopr_fwd_vld   (rs1_srcopr_fwd_vld),
-        .o_srcopr_fwd       (rs1_srcopr_fwd)
+        .i_srcopr_vld         (rs1_srcopr_vld),
+        .i_srcopr             (o_rs1_srcopr),
+        .i_ex_alu_rrftag      (i_ex_alu_rrftag),
+        .i_exfin_alu          (i_exfin_alu),
+        .i_exfin_alu_res      (i_exfin_alu_res),
+        .i_ex_mul_rrftag      (i_ex_mul_rrftag),
+        .i_exfin_mul          (i_exfin_mul),
+        .i_exfin_mul_res      (i_exfin_mul_res),
+        .i_ex_ld_rrftag       (i_ex_ld_rrftag),
+        .i_exfin_ld           (i_exfin_ld),
+        .i_exfin_ld_res       (i_exfin_ld_res),
+        .i_ex_jal_jalr_rrftag (i_ex_jal_jalr_rrftag),
+        .i_exfin_jal_jalr     (i_exfin_jal_jalr),
+        .i_exfin_jal_jalr_res (i_exfin_jal_jalr_res),
+        .o_srcopr_fwd_vld     (rs1_srcopr_fwd_vld),
+        .o_srcopr_fwd         (rs1_srcopr_fwd)
     );
 
     srcopr_fwd_unit u_srcopr_fwd_unit_2 (
-        .i_srcopr_vld       (rs2_srcopr_vld),
-        .i_srcopr           (o_rs2_srcopr),
-        .i_ex_alu_rrftag    (i_ex_alu_rrftag),
-        .i_exfin_alu        (i_exfin_alu),
-        .i_exfin_alu_res    (i_exfin_alu_res),
-        .i_ex_mul_rrftag    (i_ex_mul_rrftag),
-        .i_exfin_mul        (i_exfin_mul),
-        .i_exfin_mul_res    (i_exfin_mul_res),
-        .i_ex_ld_rrftag     (i_ex_ld_rrftag),
-        .i_exfin_ld         (i_exfin_ld),
-        .i_exfin_ld_res     (i_exfin_ld_res),
-        .o_srcopr_fwd_vld   (rs2_srcopr_fwd_vld),
-        .o_srcopr_fwd       (rs2_srcopr_fwd)
+        .i_srcopr_vld         (rs2_srcopr_vld),
+        .i_srcopr             (o_rs2_srcopr),
+        .i_ex_alu_rrftag      (i_ex_alu_rrftag),
+        .i_exfin_alu          (i_exfin_alu),
+        .i_exfin_alu_res      (i_exfin_alu_res),
+        .i_ex_mul_rrftag      (i_ex_mul_rrftag),
+        .i_exfin_mul          (i_exfin_mul),
+        .i_exfin_mul_res      (i_exfin_mul_res),
+        .i_ex_ld_rrftag       (i_ex_ld_rrftag),
+        .i_exfin_ld           (i_exfin_ld),
+        .i_exfin_ld_res       (i_exfin_ld_res),
+        .i_ex_jal_jalr_rrftag (i_ex_jal_jalr_rrftag),
+        .i_exfin_jal_jalr     (i_exfin_jal_jalr),
+        .i_exfin_jal_jalr_res (i_exfin_jal_jalr_res),
+        .o_srcopr_fwd_vld     (rs2_srcopr_fwd_vld),
+        .o_srcopr_fwd         (rs2_srcopr_fwd)
     );
 
     // Dependency, vld can be set only when busy is set

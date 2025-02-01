@@ -39,6 +39,7 @@ module ldst (
 
     assign addr = i_rs1 + i_imm;
 
+    // Can be optimized by exfin when stbuf_addr_hit
     always @(posedge clk) begin
         if (!rst_n) begin
             busy_reg           <= 'd0;

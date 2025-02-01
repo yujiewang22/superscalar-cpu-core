@@ -1,7 +1,7 @@
 `default_nettype none
 `include "constants.vh"
 
-module rs_mul_ent (
+module rs_ldst_ent (
     input  wire                        clk,
     input  wire                        rst_n,
     // state 
@@ -9,21 +9,27 @@ module rs_mul_ent (
     output wire                        o_vld,
     // Write entry
     input  wire                        i_wr_en,
-    input  wire                        i_dp_mul_signed1,
-    input  wire                        i_dp_mul_signed2,
-    input  wire                        i_dp_mul_sel_high,
     input  wire                        i_dp_rs1_srcopr_vld,
     input  wire                        i_dp_rs2_srcopr_vld,
     input  wire [`RV32_DATA_WIDTH-1:0] i_dp_rs1_srcopr,
     input  wire [`RV32_DATA_WIDTH-1:0] i_dp_rs2_srcopr,
+    input  wire                        i_dp_is_jal,
+    input  wire                        i_dp_is_jalr,
+    input  wire [`ALU_OP_SEL-1:0]      i_dp_alu_op_sel,
+    input  wire [`RV32_PC_WIDTH-1:0]   i_dp_pc,
+    input  wire [`RV32_DATA_WIDTH-1:0] i_dp_imm,
+    input  wire [`RV32_PC_WIDTH-1:0]   i_dp_pred_jmpaddr,
     input  wire [`RRF_ENT_SEL-1:0]     i_dp_rrftag,
     // Read entry
     input  wire                        i_rd_en,
-    output reg                         o_mul_signed1,
-    output reg                         o_mul_signed2,
-    output reg                         o_mul_sel_high,
     output reg  [`RV32_DATA_WIDTH-1:0] o_rs1_srcopr,
     output reg  [`RV32_DATA_WIDTH-1:0] o_rs2_srcopr,
+    output reg                         o_is_jal,
+    output reg                         o_is_jalr,
+    output reg  [`ALU_OP_SEL-1:0]      o_alu_op_sel,
+    output reg  [`RV32_PC_WIDTH-1:0]   o_pc,
+    output reg  [`RV32_DATA_WIDTH-1:0] o_imm,
+    output reg  [`RV32_PC_WIDTH-1:0]   o_pred_jmpaddr,
     output reg  [`RRF_ENT_SEL-1:0]     o_rrftag,
     // Renew entry when exfinish
     input  wire [`RRF_ENT_SEL-1:0]     i_ex_alu_rrftag,
@@ -65,23 +71,29 @@ module rs_mul_ent (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            o_mul_signed1  <= 'd0;
-            o_mul_signed2  <= 'd0;
-            o_mul_sel_high <= 'd0;
             rs1_srcopr_vld <= 'd0;
             rs2_srcopr_vld <= 'd0;
             o_rs1_srcopr   <= 'd0;
             o_rs2_srcopr   <= 'd0;
+            o_is_jal       <= 'd0;
+            o_is_jalr      <= 'd0;
+            o_alu_op_sel   <= 'd0;
+            o_pc           <= 'd0;
+            o_imm          <= 'd0;
+            o_pred_jmpaddr <= 'd0;
             o_rrftag       <= 'd0;
         end else begin
             if (i_wr_en) begin
-                o_mul_signed1  <= i_dp_mul_signed1;
-                o_mul_signed2  <= i_dp_mul_signed2;
-                o_mul_sel_high <= i_dp_mul_sel_high;
                 rs1_srcopr_vld <= i_dp_rs1_srcopr_vld;
                 rs2_srcopr_vld <= i_dp_rs2_srcopr_vld;
                 o_rs1_srcopr   <= i_dp_rs1_srcopr;
                 o_rs2_srcopr   <= i_dp_rs2_srcopr;
+                o_is_jal       <= i_dp_is_jal;
+                o_is_jalr      <= i_dp_is_jalr;
+                o_alu_op_sel   <= i_dp_alu_op_sel;
+                o_pc           <= i_dp_pc;
+                o_imm          <= i_dp_imm;
+                o_pred_jmpaddr <= i_dp_pred_jmpaddr;
                 o_rrftag       <= i_dp_rrftag;
             end else begin
                 // Alwasys renewed by fwd unit

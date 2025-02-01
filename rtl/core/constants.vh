@@ -35,6 +35,10 @@
 `define RRF_ENT_NUM           `ROB_ENT_NUM
 `define RRF_ENT_SEL           `ROB_ENT_SEL
 
+// SP
+`define SPTAG_WIDTH           5
+`define SPDEPTH_WIDTH         3  
+
 // RS SEL
 `define RS_SEL                2
 `define RS_ALU                `RS_SEL'd0
@@ -49,6 +53,8 @@
 `define RS_MUL_ENT_SEL        1
 `define RS_LDST_ENT_NUM       2
 `define RS_LDST_ENT_SEL       1
+`define RS_BR_ENT_NUM         2
+`define RS_BR_ENT_SEL         1
 
 // STBUF
 `define STBUF_ENT_NUM         32
