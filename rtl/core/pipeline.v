@@ -22,13 +22,13 @@ module pipeline (
     // --------------------- Control ---------------------- //
     // ---------------------------------------------------- // 
 
-    wire                        kill_if;
-    wire                        kill_id;
-    wire                        kill_dp;
+    wire                        if_kill;
+    wire                        id_kill;
+    wire                        dp_kill;
 
-    wire                        stall_if;
-    wire                        stall_id;
-    wire                        stall_dp; 
+    wire                        if_stall;
+    wire                        id_stall;
+    wire                        dp_stall; 
 
     // ---------------------------------------------------- //
     // --------------------- IF-Stage --------------------- //
@@ -226,29 +226,29 @@ module pipeline (
 
     wire [`RS_ALU_ENT_NUM-1:0]  dp_rs_alu_busy_vec;
     wire                        dp_rs_alu_allocable;
-    wire                        dp_rs_alu_alloc_sel_vld_1;  // Not used
-    wire                        dp_rs_alu_alloc_sel_vld_2;  // Not used
+    wire                        dp_rs_alu_alloc_sel_vld_1;  
+    wire                        dp_rs_alu_alloc_sel_vld_2; 
     wire [`RS_ALU_ENT_SEL-1:0]  dp_rs_alu_alloc_sel_1;
     wire [`RS_ALU_ENT_SEL-1:0]  dp_rs_alu_alloc_sel_2;
 
     wire [`RS_MUL_ENT_NUM-1:0]  dp_rs_mul_busy_vec;
     wire                        dp_rs_mul_allocable;
-    wire                        dp_rs_mul_alloc_sel_vld_1;  // Not used
-    wire                        dp_rs_mul_alloc_sel_vld_2;  // Not used
+    wire                        dp_rs_mul_alloc_sel_vld_1;  
+    wire                        dp_rs_mul_alloc_sel_vld_2; 
     wire [`RS_MUL_ENT_SEL-1:0]  dp_rs_mul_alloc_sel_1;
     wire [`RS_MUL_ENT_SEL-1:0]  dp_rs_mul_alloc_sel_2;
 
     wire [`RS_LDST_ENT_NUM-1:0] dp_rs_ldst_busy_vec;
     wire                        dp_rs_ldst_allocable;
-    wire                        dp_rs_ldst_alloc_sel_vld_1;  // Not used
-    wire                        dp_rs_ldst_alloc_sel_vld_2;  // Not used
+    wire                        dp_rs_ldst_alloc_sel_vld_1;  
+    wire                        dp_rs_ldst_alloc_sel_vld_2; 
     wire [`RS_LDST_ENT_SEL-1:0] dp_rs_ldst_alloc_sel_1;
     wire [`RS_LDST_ENT_SEL-1:0] dp_rs_ldst_alloc_sel_2;
 
     wire [`RS_BR_ENT_NUM-1:0]   dp_rs_br_busy_vec;
     wire                        dp_rs_br_allocable;
-    wire                        dp_rs_br_alloc_sel_vld_1;    // Not used
-    wire                        dp_rs_br_alloc_sel_vld_2;    // Not used
+    wire                        dp_rs_br_alloc_sel_vld_1;    
+    wire                        dp_rs_br_alloc_sel_vld_2;    
     wire [`RS_BR_ENT_SEL-1:0]   dp_rs_br_alloc_sel_1;
     wire [`RS_BR_ENT_SEL-1:0]   dp_rs_br_alloc_sel_2;
 
@@ -422,18 +422,32 @@ module pipeline (
     // --------------------- Control ---------------------- //
     // ---------------------------------------------------- // 
 
-    assign kill_if  = exfin_prmiss;
-    assign kill_id  = exfin_prmiss || (stall_if && (!stall_id));
-    assign kill_dp  = exfin_prmiss || (stall_id && (!stall_dp));
-
-    assign stall_if = stall_id;
-    assign stall_id = stall_dp || (!id_sptag_gen_allocable);
-    assign stall_dp = !(dp_freelist_allocable && dp_rs_alu_allocable && dp_rs_mul_allocable && dp_rs_ldst_allocable && dp_rs_br_allocable);
-
-    assign is_rs_alu_vld  = is_rs_alu_sel_vld  && ex_alu_accessable;
-    assign is_rs_mul_vld  = is_rs_mul_sel_vld  && ex_mul_accessable;
-    assign is_rs_ldst_vld = is_rs_ldst_sel_vld && ex_ldst_accessable;
-    assign is_rs_br_vld   = is_rs_br_sel_vld   && ex_br_accessable;
+    control_unit u_control_unit (
+        .i_dp_freelist_allocable (dp_freelist_allocable),
+        .i_dp_rs_alu_allocable   (dp_rs_alu_allocable),
+        .i_dp_rs_mul_allocable   (dp_rs_mul_allocable),
+        .i_dp_rs_ldst_allocable  (dp_rs_ldst_allocable),
+        .i_dp_rs_br_allocable    (dp_rs_br_allocable),
+        .i_exfin_prmiss          (exfin_prmiss),
+        .o_if_kill               (if_kill),
+        .o_id_kill               (id_kill),
+        .o_dp_kill               (dp_kill),
+        .o_if_stall              (if_stall),
+        .o_id_stall              (id_stall),
+        .o_dp_stall              (dp_stall),
+        .i_is_rs_alu_sel_vld     (is_rs_alu_sel_vld),
+        .i_is_rs_mul_sel_vld     (is_rs_mul_sel_vld),
+        .i_is_rs_ldst_sel_vld    (is_rs_ldst_sel_vld),
+        .i_is_rs_br_sel_vld      (is_rs_br_sel_vld),
+        .i_ex_alu_accessable     (ex_alu_accessable),
+        .i_ex_mul_accessable     (ex_mul_accessable),
+        .i_ex_ldst_accessable    (ex_ldst_accessable),
+        .i_ex_br_accessable      (ex_br_accessable),
+        .o_is_rs_alu_vld         (is_rs_alu_vld),
+        .o_is_rs_mul_vld         (is_rs_mul_vld),
+        .o_is_rs_ldst_vld        (is_rs_ldst_vld),
+        .o_is_rs_br_vld          (is_rs_br_vld)
+    );
 
     // ---------------------------------------------------- //
     // --------------------- IF-Stage --------------------- //
@@ -442,8 +456,8 @@ module pipeline (
     pc_reg u_pc_reg (
         .clk                 (clk),
         .rst_n               (rst_n),
-        .i_stall             (stall_if),
-        .i_pred_jmpaddr_miss (kill_if),
+        .i_stall             (if_stall),
+        .i_pred_jmpaddr_miss (if_kill),
         .i_jmpaddr           (exfin_br_jmpaddr),
         .i_pred_jmp          (if_pred_jmp), 
         .i_pred_jmpaddr      (if_pc_btb),
@@ -498,7 +512,7 @@ module pipeline (
             id_pred_jmpaddr_1 <= 'd0;
             id_pred_jmpaddr_2 <= 'd0;
         end else begin 
-            if (kill_id) begin
+            if (id_kill) begin
                 id_pc_1           <= 'd0;
                 id_pc_2           <= 'd0;
                 id_inst_vld_1     <= 'd0; 
@@ -508,7 +522,7 @@ module pipeline (
                 id_ghr            <= 'd0;
                 id_pred_jmpaddr_1 <= 'd0;
                 id_pred_jmpaddr_2 <= 'd0;       
-            end else if (stall_id) begin
+            end else if (id_stall) begin
             end else begin
                 id_pc_1           <= if_pc_1;
                 id_pc_2           <= if_pc_2;
@@ -573,7 +587,7 @@ module pipeline (
         .clk            (clk),
         .rst_n          (rst_n),
         .o_allocable    (id_sptag_gen_allocable),
-        .i_stall        (stall_id),
+        .i_stall        (id_stall),
         .i_is_br_1      (id_is_br_1),
         .i_is_br_2      (id_is_br_2),
         .o_inst_sp_1    (id_inst_sp_1),
@@ -591,6 +605,7 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
+            // Inst_1
             dp_pc_1           <= 'd0;
             dp_vld_1          <= 'd0;
             dp_inst_1         <= 'd0;
@@ -613,7 +628,7 @@ module pipeline (
             dp_is_jalr_1      <= 'd0;
             dp_pred_jmpaddr_1 <= 'd0;
             dp_rs_sel_1       <= 'd0;
-
+            // Inst_2
             dp_pc_2           <= 'd0;   
             dp_vld_2          <= 'd0;
             dp_inst_2         <= 'd0;
@@ -637,7 +652,8 @@ module pipeline (
             dp_pred_jmpaddr_2 <= 'd0;
             dp_rs_sel_2       <= 'd0;
         end else begin
-            if (kill_dp) begin
+            if (dp_kill) begin
+                // Inst_1
                 dp_pc_1           <= 'd0;
                 dp_vld_1          <= 'd0;
                 dp_inst_1         <= 'd0;
@@ -660,7 +676,7 @@ module pipeline (
                 dp_is_jalr_1      <= 'd0;
                 dp_pred_jmpaddr_1 <= 'd0;
                 dp_rs_sel_1       <= 'd0;
-
+                // Inst_2
                 dp_pc_2           <= 'd0;   
                 dp_vld_2          <= 'd0;
                 dp_inst_2         <= 'd0;
@@ -683,8 +699,9 @@ module pipeline (
                 dp_is_jalr_2      <= 'd0; 
                 dp_pred_jmpaddr_2 <= 'd0;
                 dp_rs_sel_2       <= 'd0;
-            end else if (stall_dp) begin
+            end else if (dp_stall) begin
             end else begin
+                // Inst_1
                 dp_pc_1           <= id_pc_1;
                 dp_vld_1          <= id_inst_vld_1 && (!id_illegal_1);
                 dp_inst_1         <= id_inst_1;
@@ -707,7 +724,7 @@ module pipeline (
                 dp_is_jalr_1      <= id_is_jalr_1;
                 dp_pred_jmpaddr_1 <= id_pred_jmpaddr_1;
                 dp_rs_sel_1       <= id_rs_sel_1;
-
+                // Inst_2
                 dp_pc_2           <= id_pc_2;
                 dp_vld_2          <= id_inst_vld_2 && (!id_illegal_2);
                 dp_inst_2         <= id_inst_2;
@@ -737,7 +754,7 @@ module pipeline (
     freelist_manager u_freelist_manager (
         .clk         (clk),
         .rst_n       (rst_n),
-        .i_stall     (stall_dp),
+        .i_stall     (dp_stall),
         .i_dp_vld_1  (dp_vld_1),
         .i_dp_vld_2  (dp_vld_2),
         .i_com_num   (com_num),
@@ -1015,7 +1032,7 @@ module pipeline (
     ) u_rs_ldst_alloc_issue_order (
         .clk               (clk),
         .rst_n             (rst_n),
-        .i_stall           (stall_dp),
+        .i_stall           (dp_stall),
         .i_busy_vec        (dp_rs_ldst_busy_vec),
         .i_req_num         (dp_rs_ldst_req_num),
         .o_allocable       (dp_rs_ldst_allocable),
@@ -1035,7 +1052,7 @@ module pipeline (
     ) u_rs_br_alloc_issue_order (
         .clk               (clk),
         .rst_n             (rst_n),
-        .i_stall           (stall_dp),
+        .i_stall           (dp_stall),
         .i_busy_vec        (dp_rs_br_busy_vec),
         .i_req_num         (dp_rs_br_req_num),
         .o_allocable       (dp_rs_br_allocable),
@@ -1058,7 +1075,7 @@ module pipeline (
         .rst_n                 (rst_n),
         .o_busy_vec            (dp_rs_alu_busy_vec),
         .o_vld_vec             (is_rs_alu_vld_vec),
-        .i_stall               (stall_dp),
+        .i_stall               (dp_stall),
         .i_alloc_vld_1         (dp_rs_alu_req_1),
         .i_alloc_sel_1         (dp_rs_alu_req_1 ? dp_rs_alu_alloc_sel_1 : dp_rs_alu_alloc_sel_2),
         .i_dp_alu_op_sel_1     (dp_alu_op_sel_1),
@@ -1112,7 +1129,7 @@ module pipeline (
         .rst_n                 (rst_n),
         .o_busy_vec            (dp_rs_mul_busy_vec),
         .o_vld_vec             (is_rs_mul_vld_vec),
-        .i_stall               (stall_dp),
+        .i_stall               (dp_stall),
         .i_alloc_vld_1         (dp_rs_mul_req_1), 
         .i_alloc_sel_1         (dp_rs_mul_req_1 ? dp_rs_mul_alloc_sel_1 : dp_rs_mul_alloc_sel_2),
         .i_dp_mul_signed1_1    (dp_mul_signed1_1),
@@ -1160,7 +1177,7 @@ module pipeline (
         .rst_n                 (rst_n),
         .o_busy_vec            (dp_rs_ldst_busy_vec),
         .o_vld_vec             (is_rs_ldst_vld_vec),
-        .i_stall               (stall_dp),
+        .i_stall               (dp_stall),
         .i_alloc_vld_1         (dp_rs_ldst_req_1), 
         .i_alloc_sel_1         (dp_rs_ldst_req_1 ? dp_rs_ldst_alloc_sel_1 : dp_rs_ldst_alloc_sel_2),
         .i_dp_rs1_srcopr_vld_1 ((!dp_rs1_rd_en_1) || dp_rs1_srcopr_fwd_vld_1),  
@@ -1205,7 +1222,7 @@ module pipeline (
         .rst_n                 (rst_n),
         .o_busy_vec            (dp_rs_br_busy_vec),
         .o_vld_vec             (is_rs_br_vld_vec),
-        .i_stall               (stall_dp),
+        .i_stall               (dp_stall),
         .i_alloc_vld_1         (dp_rs_br_req_1),
         .i_alloc_sel_1         (dp_rs_br_req_1 ? dp_rs_br_alloc_sel_1 : dp_rs_br_alloc_sel_2),
         .i_dp_rs1_srcopr_vld_1 ((!dp_rs1_rd_en_1) || dp_rs1_srcopr_vld_1),
@@ -1453,7 +1470,7 @@ module pipeline (
     rob u_rob (
         .clk                (clk),
         .rst_n              (rst_n),
-        .i_stall            (stall_dp),
+        .i_stall            (dp_stall),
         .i_dp_vld_1         (dp_vld_1),
         .i_dp_ptr_1         (dp_ptr_1),
         .i_dp_rd_wr_en_1    (dp_rd_wr_en_1),
