@@ -36,6 +36,7 @@
 `define RRF_ENT_SEL           `ROB_ENT_SEL
 
 // SP
+`define SPTAG_NUM             5
 `define SPTAG_WIDTH           5
 `define SPDEPTH_WIDTH         3  
 

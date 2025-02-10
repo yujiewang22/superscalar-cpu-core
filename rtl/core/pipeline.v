@@ -14,6 +14,11 @@ module pipeline (
     output wire [`RV32_DATA_WIDTH-1:0] o_dmem_wr_data
 );
 
+    // 1、把alu的保留站数目提升，增加oldest_finder算法
+    // 2、增加零个alu执行单元
+    // 2、完善分支预测的所有逻辑
+    // 4、完善分支预测对各个阶段的修复工作
+
     // ******************************************************************* //
     //                              Signals                                //
     // ******************************************************************* //
@@ -501,7 +506,7 @@ module pipeline (
     // ---------------------------------------------------- //  
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if ((!rst_n) || id_kill) begin
             id_pc_1           <= 'd0;
             id_pc_2           <= 'd0;
             id_inst_vld_1     <= 'd0; 
@@ -511,18 +516,8 @@ module pipeline (
             id_ghr            <= 'd0;
             id_pred_jmpaddr_1 <= 'd0;
             id_pred_jmpaddr_2 <= 'd0;
-        end else begin 
-            if (id_kill) begin
-                id_pc_1           <= 'd0;
-                id_pc_2           <= 'd0;
-                id_inst_vld_1     <= 'd0; 
-                id_inst_vld_2     <= 'd0; 
-                id_inst_1         <= 'd0;
-                id_inst_2         <= 'd0;
-                id_ghr            <= 'd0;
-                id_pred_jmpaddr_1 <= 'd0;
-                id_pred_jmpaddr_2 <= 'd0;       
-            end else if (id_stall) begin
+        end else begin        
+            if (id_stall) begin
             end else begin
                 id_pc_1           <= if_pc_1;
                 id_pc_2           <= if_pc_2;
@@ -604,7 +599,7 @@ module pipeline (
     // ---------------------------------------------------- //  
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        if ((!rst_n) || dp_kill) begin
             // Inst_1
             dp_pc_1           <= 'd0;
             dp_vld_1          <= 'd0;
@@ -652,54 +647,7 @@ module pipeline (
             dp_pred_jmpaddr_2 <= 'd0;
             dp_rs_sel_2       <= 'd0;
         end else begin
-            if (dp_kill) begin
-                // Inst_1
-                dp_pc_1           <= 'd0;
-                dp_vld_1          <= 'd0;
-                dp_inst_1         <= 'd0;
-                dp_rs1_rd_en_1    <= 'd0;
-                dp_rs2_rd_en_1    <= 'd0;
-                dp_rd_wr_en_1     <= 'd0;
-                dp_rs1_rd_addr_1  <= 'd0;
-                dp_rs2_rd_addr_1  <= 'd0;
-                dp_rd_wr_addr_1   <= 'd0;
-                dp_imm_type_sel_1 <= 'd0;
-                dp_alu_op_sel_1   <= 'd0;
-                dp_alu_src1_sel_1 <= 'd0;
-                dp_alu_src2_sel_1 <= 'd0;
-                dp_mul_signed1_1  <= 'd0;   
-                dp_mul_signed2_1  <= 'd0;  
-                dp_mul_sel_high_1 <= 'd0;          
-                dp_is_st_1        <= 'd0;  
-                dp_is_br_1        <= 'd0;
-                dp_is_jal_1       <= 'd0;
-                dp_is_jalr_1      <= 'd0;
-                dp_pred_jmpaddr_1 <= 'd0;
-                dp_rs_sel_1       <= 'd0;
-                // Inst_2
-                dp_pc_2           <= 'd0;   
-                dp_vld_2          <= 'd0;
-                dp_inst_2         <= 'd0;
-                dp_rs1_rd_en_2    <= 'd0;
-                dp_rs2_rd_en_2    <= 'd0;
-                dp_rd_wr_en_2     <= 'd0;
-                dp_rs1_rd_addr_2  <= 'd0;
-                dp_rs2_rd_addr_2  <= 'd0;
-                dp_rd_wr_addr_2   <= 'd0;
-                dp_imm_type_sel_2 <= 'd0;
-                dp_alu_op_sel_2   <= 'd0;
-                dp_alu_src1_sel_2 <= 'd0;
-                dp_alu_src2_sel_2 <= 'd0;
-                dp_mul_signed1_1  <= 'd0;   
-                dp_mul_signed2_1  <= 'd0;  
-                dp_mul_sel_high_1 <= 'd0;  
-                dp_is_st_2        <= 'd0;  
-                dp_is_br_2        <= 'd0;
-                dp_is_jal_2       <= 'd0;
-                dp_is_jalr_2      <= 'd0; 
-                dp_pred_jmpaddr_2 <= 'd0;
-                dp_rs_sel_2       <= 'd0;
-            end else if (dp_stall) begin
+            if (dp_stall) begin
             end else begin
                 // Inst_1
                 dp_pc_1           <= id_pc_1;
@@ -1280,14 +1228,14 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_alu_op_sel         <= 'd0;
-            ex_alu_src1_sel       <= 'd0;
-            ex_alu_src2_sel       <= 'd0;
-            ex_alu_rs1_srcopr     <= 'd0;
-            ex_alu_pc             <= 'd0;
-            ex_alu_rs2_srcopr     <= 'd0;
-            ex_alu_imm            <= 'd0;
-            ex_alu_rrftag         <= 'd0;
+            ex_alu_op_sel     <= 'd0;
+            ex_alu_src1_sel   <= 'd0;
+            ex_alu_src2_sel   <= 'd0;
+            ex_alu_rs1_srcopr <= 'd0;
+            ex_alu_pc         <= 'd0;
+            ex_alu_rs2_srcopr <= 'd0;
+            ex_alu_imm        <= 'd0;
+            ex_alu_rrftag     <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_alu_vld) begin
@@ -1321,12 +1269,12 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_mul_signed1        <= 'd0;
-            ex_mul_signed2        <= 'd0;
-            ex_mul_sel_high       <= 'd0;
-            ex_mul_rs1_srcopr     <= 'd0;
-            ex_mul_rs2_srcopr     <= 'd0;  
-            ex_alu_rrftag         <= 'd0;
+            ex_mul_signed1    <= 'd0;
+            ex_mul_signed2    <= 'd0;
+            ex_mul_sel_high   <= 'd0;
+            ex_mul_rs1_srcopr <= 'd0;
+            ex_mul_rs2_srcopr <= 'd0;  
+            ex_alu_rrftag     <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_mul_vld) begin
@@ -1356,11 +1304,11 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_ldst_rs1_srcopr     <= 'd0;
-            ex_ldst_rs2_srcopr     <= 'd0;
-            ex_ldst_imm            <= 'd0;
-            ex_ldst_is_st          <= 'd0;
-            ex_ldst_rrftag         <= 'd0;
+            ex_ldst_rs1_srcopr <= 'd0;
+            ex_ldst_rs2_srcopr <= 'd0;
+            ex_ldst_imm        <= 'd0;
+            ex_ldst_is_st      <= 'd0;
+            ex_ldst_rrftag     <= 'd0;
         end else begin    
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_ldst_vld) begin
@@ -1416,15 +1364,15 @@ module pipeline (
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ex_br_is_jal           <= 'd0;
-            ex_br_is_jalr          <= 'd0;
-            ex_br_alu_op_sel       <= 'd0;
-            ex_br_rs1_srcopr       <= 'd0;
-            ex_br_rs2_srcopr       <= 'd0;
-            ex_br_pc               <= 'd0;
-            ex_br_imm              <= 'd0;
-            ex_br_pred_jmpaddr     <= 'd0;
-            ex_br_rrftag           <= 'd0;
+            ex_br_is_jal       <= 'd0;
+            ex_br_is_jalr      <= 'd0;
+            ex_br_alu_op_sel   <= 'd0;
+            ex_br_rs1_srcopr   <= 'd0;
+            ex_br_rs2_srcopr   <= 'd0;
+            ex_br_pc           <= 'd0;
+            ex_br_imm          <= 'd0;
+            ex_br_pred_jmpaddr <= 'd0;
+            ex_br_rrftag       <= 'd0;
         end else begin      
             // Maintain until exfinshed, so actually this is a buf rather than pipe-regs
             if (is_rs_br_vld) begin

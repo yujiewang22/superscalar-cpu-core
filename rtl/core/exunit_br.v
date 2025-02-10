@@ -19,7 +19,7 @@ module exunit_br (
     output wire                        o_exfin,
     output wire [`RV32_PC_WIDTH-1:0]   o_exfin_jmpaddr,
     output wire                        o_exfin_jmpcond,
-    output wire                        o_exfin_prsuc,   
+    output wire                        o_exfin_prsucc,   
     output wire                        o_exfin_prmiss
 );
 
@@ -56,7 +56,7 @@ module exunit_br (
     assign o_exfin_jal_jalr     = busy && (i_is_jal || i_is_jalr);
     assign o_exfin_jal_jalr_res = o_exfin_jmpaddr;
     assign o_exfin              = busy;
-    assign o_exfin_prsuc        = busy && pred_jmpaddr_suc;
+    assign o_exfin_prsucc       = busy && pred_jmpaddr_suc;
     assign o_exfin_prmiss       = busy && (!pred_jmpaddr_suc);
 
 endmodule

@@ -28,6 +28,7 @@ module regfile (
     assign o_rd_data_4 = mem[i_rd_addr_4];  
 
     // Two write ports
+    // If both write ports write to the same address, the second write will overwrite the first write
     always @(posedge clk) begin
         if (i_wr_en_1) begin
             mem[i_wr_addr_1] <= i_wr_data_1;

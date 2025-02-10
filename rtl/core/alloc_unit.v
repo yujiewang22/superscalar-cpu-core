@@ -17,7 +17,6 @@ module alloc_unit #(
     wire [ENT_NUM-1:0] free_vec;
     wire [ENT_NUM-1:0] free_vec_masked;
 
-    // Free signal is inversed from busy signal
     assign free_vec = ~i_busy_vec;
 
     req_arbiter #(
@@ -47,7 +46,6 @@ module alloc_unit #(
         .o_ack     (o_sel_2)
     );
 
-    // Inallocable signal used to stall the pipeline outside this module
     assign o_allocable = (i_req_num <= ({1'b0, o_sel_vld_1} + {1'b0, o_sel_vld_2})) ? 1'b1 : 1'b0;
 
 endmodule

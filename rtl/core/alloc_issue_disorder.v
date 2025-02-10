@@ -5,7 +5,6 @@ module alloc_issue_disorder #(
     parameter ENT_NUM = 2,
     parameter ENT_SEL = 1
 )(
-    // alloc
     input  wire [ENT_NUM-1:0]       i_busy_vec,
     input  wire [`DP_NUM_WIDTH-1:0] i_req_num,
     output wire                     o_allocable,
@@ -13,7 +12,6 @@ module alloc_issue_disorder #(
     output wire                     o_alloc_sel_vld_2,
     output wire [ENT_SEL-1:0]       o_alloc_sel_1,
     output wire [ENT_SEL-1:0]       o_alloc_sel_2,
-    // issue
     input  wire [ENT_NUM-1:0]       i_vld_vec,
     output wire                     o_issue_sel_vld,
     output wire [ENT_SEL-1:0]       o_issue_sel
